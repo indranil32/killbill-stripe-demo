@@ -41,7 +41,7 @@ def create_kb_account(name, email, external_key, currency, address, postalCode, 
   	account.external_key = external_key
   	account.currency = currency  
     account.address1 = address
-    account.postalCode = postalCode
+    account.postal_code = postalCode
     account.company = company
     account.city = city
     account.state = state
