@@ -34,7 +34,7 @@ Run
 To run the app:
 
 ```
-PUBLISHABLE_KEY=<YOUR_PUBLISHABLE_STRIPE_KEY> ruby app.rb
+PUBLISHABLE_KEY=<YOUR_PUBLISHABLE_STRIPE_KEY> ruby app.rb -o 0.0.0.0 -p 4567
 ```
 
 or if you are using Docker:

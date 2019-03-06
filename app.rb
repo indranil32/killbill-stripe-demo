@@ -22,43 +22,68 @@ options = {
 reason = 'Trigger by openums demo'
 comment = 'Trigger by openums demo'
 
-def create_kb_account(name, email, currency, reason, comment, options)
-  account = KillBillClient::Model::Account.new
-  account.name = name
-  account.email = email
-  account.externalKey = externalKey
-  account.currency = currency  
-  account.create(name, reason, comment, options)
+def create_kb_account(name, email, externalKey, currency, reason, comment, options)
+  puts "for account - " + externalKey
+  begin
+  	existing = KillBillClient::Model::Account.find_by_external_key(externalKey,
+                             false,
+                             false, 
+                             options)	
+	existing
+  rescue
+	puts 'Account doesn not exist. Creating new...'
+	account = KillBillClient::Model::Account.new
+	account.name = name
+	account.email = email
+	account.external_key = externalKey
+	account.currency = currency  
+	account = account.create(name, reason, comment, options)
+	puts 'Account created successfully'
+	account
+  end	  
 end
 
 def create_kb_payment_method(account, stripe_token, reason, comment, options)
-  pm = KillBillClient::Model::PaymentMethod.new
-  pm.account_id = account.account_id
-  pm.plugin_name = 'killbill-stripe'
-  pm.plugin_info = {'token' => stripe_token}
-  pm.create(true, account.name, reason, comment, options)
+  #begin
+      	pm = KillBillClient::Model::PaymentMethod.new
+ 	pm.account_id = account.account_id
+  	pm.plugin_name = 'killbill-stripe'
+  	pm.plugin_info = {'token' => stripe_token}
+  	pm.create(true, account.name, reason, comment, options)
+ 	puts 'Payment method created successfully!!'
+  	pm
+  #rescue
+  #end
 end
 
 def create_subscription(account, pkgName, price, reason, comment, options)
-  subscription = KillBillClient::Model::Subscription.new
-  subscription.account_id = account.account_id
-  # pkgList[i].product+ "-" + pkgList[i].plan + "-" + pkgList[i].priceList + "-" + pkgList[i].finalPhaseBillingPeriod;
-  #reserved-metal/reserved-metal-monthly-trial-bp/TRIAL/MONTHLY
-  array = pkgName.split("/")
-  subscription.product_name = array.shift
-  subscription.product_category = 'BASE'
-  subscription.plan_name = array.shift
-  subscription.price_list = array.shift
-  subscription.billing_period = array.shift
-  subscription.price_overrides = []
+  begin
+	subscription = KillBillClient::Model::Subscription.new
+  	subscription.account_id = account.account_id
+  	# pkgList[i].product+ "-" + pkgList[i].plan + "-" + pkgList[i].priceList + "-" + pkgList[i].finalPhaseBillingPeriod;
+  	#reserved-metal/reserved-metal-monthly-trial-bp/TRIAL/MONTHLY
+  	array = pkgName.split("/")
+  	#subscription.product_name = 
+  	array.shift
+  	#subscription.product_category = 'BASE'
+  	subscription.plan_name = array.shift
+  	#subscription.price_list = array.shift
+  	#subscription.billing_period = array.shift
+	#subscription.price_overrides = []
 
-  # For the demo to be interesting, override the trial price to be non-zero so we trigger a charge in Stripe
-  override_trial = KillBillClient::Model::PhasePriceAttributes.new
-  override_trial.phase_type = 'EVERGREEN'
-  override_trial.fixed_price = price
-  subscription.price_overrides << override_trial
+  	# For the demo to be interesting, override the trial price to be non-zero so we trigger a charge in Stripe
+  	#override_trial = KillBillClient::Model::PhasePriceAttributes.new
+  	#override_trial.phase_type = 'EVERGREEN'
+  	#override_trial.fixed_price = price
+	#subscription.price_overrides << override_trial
 
-  subscription.create(account.name, reason, comment, nil, true, options)
+	subscription.create(account.name, reason, comment, nil, true, options)
+ 	puts 'Subscription created successfully!!'
+	subscription
+  rescue
+ 	puts 'Subscription creation error!!'
+  
+  end
 end
 
 #
@@ -71,7 +96,7 @@ end
 
 post '/charge' do
   # Create an account
-  account = create_kb_account(params[:name], params[:email], params[:currency], reason, comment, options)
+  account = create_kb_account(params[:name], params[:email], params[:externalKey], params[:currency], reason, comment, options)
 
   # Add a payment method associated with the Stripe token
   create_kb_payment_method(account, params[:stripeToken], reason, comment, options)
@@ -83,10 +108,16 @@ post '/charge' do
   @invoice = account.invoices(true, options).first
 
   # And the Stripe authorization
-  transaction = @invoice.payments(true, false, 'NONE', options).first.transactions.first
-  @authorization = (transaction.properties.find { |p| p.key == 'authorization' }).value
+  allTxs = @invoice.payments(true, false, 'NONE', options)
+  if allTxs.nil?
+	puts 'Payment error!!'
+	erb :index
+  else
+  	transaction = allTxs.first.transactions.first
+	@authorization = (transaction.properties.find { |p| p.key == 'authorization' }).value
+  	erb :charge
+  end  
 
-  erb :charge
 end
 
 __END__
@@ -109,11 +140,12 @@ __END__
       </label>
     </article>
     <br/>
-    <input type="hidden" name="package" value="reserved-metal/reserved-metal-monthly-trial-bp/TRIAL/MONTHLY">
-    <input type="hidden" name="name" value="demo@newremmedia.com">
-    <input type="hidden" name="email" value="demo@newremmedia.com">
-    <input type="hidden" name="currency" value="USD">
-    <input type="hidden" name="price" value="20">
+    <input type="text" name="package" value="reserved-metal/reserved-metal-monthly-bp/DEFAULT/MONTHLY">
+    <input type="text" name="externalKey" value="demo4@newremmedia.com">
+    <input type="text" name="name" value="demo4@newremmedia.com">
+    <input type="text" name="email" value="demo4@newremmedia.com">
+    <input type="text" name="currency" value="USD">
+    <input type="text" name="price" value="20">
     <script src="https://checkout.stripe.com/v3/checkout.js" class="stripe-button" data-key="<%= settings.publishable_key %>"></script>
   </form>
 
