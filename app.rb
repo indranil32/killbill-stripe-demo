@@ -35,7 +35,7 @@ def create_kb_account(name, email, external_key, currency, address, postalCode, 
   	account = KillBillClient::Model::Account.new
   	account.name = name
   	unless name.to_s.empty?
-      		account.firsti_name_length = name.split(' ').first.length
+      		account.first_name_length = name.split(' ').first.length
   	end    
   	account.email = email
   	account.external_key = external_key
