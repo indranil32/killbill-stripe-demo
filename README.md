@@ -34,7 +34,9 @@ Run
 To run the app:
 
 ```
-PUBLISHABLE_KEY=<YOUR_PUBLISHABLE_STRIPE_KEY> ruby app.rb -o 0.0.0.0 -p 4567
+export KB_URL=http://35.185.74.215:6858
+export PUBLISHABLE_KEY=<YOUR_PUBLISHABLE_STRIPE_KEY> 
+nohup ruby app.rb -o 0.0.0.0 -p 4567 &
 ```
 
 or if you are using Docker:
